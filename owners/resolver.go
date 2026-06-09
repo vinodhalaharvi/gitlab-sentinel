@@ -25,15 +25,15 @@ type Assignment struct {
 
 // Resolver routes findings to assignments.
 type Resolver struct {
-	pathRules     []pathRule
-	emailRules    map[string]Assignment
-	fallback      Assignment
+	pathRules  []pathRule
+	emailRules map[string]Assignment
+	fallback   Assignment
 }
 
 type configFile struct {
-	Rules    []configRule              `json:"rules"`
-	ByOwner  map[string]configByOwner  `json:"by_owner_email"`
-	Fallback configFallback            `json:"fallback"`
+	Rules    []configRule             `json:"rules"`
+	ByOwner  map[string]configByOwner `json:"by_owner_email"`
+	Fallback configFallback           `json:"fallback"`
 }
 
 type configRule struct {

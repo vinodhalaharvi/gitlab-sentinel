@@ -476,12 +476,12 @@ func (s *server) watchWorkflowResult(workflowID string) {
 	// Compact summary for the UI so it can render immediately on
 	// workflow.completed without a separate fetch.
 	summary := map[string]interface{}{
-		"findings_count":     len(out.Report.Findings),
-		"tickets_filed":      len(out.Tickets),
-		"errors_count":       len(out.Report.Errors),
-		"completed_at":       out.Report.CompletedAt,
-		"started_at":         out.Report.StartedAt,
-		"duration_seconds":   out.Report.CompletedAt.Sub(out.Report.StartedAt).Seconds(),
+		"findings_count":   len(out.Report.Findings),
+		"tickets_filed":    len(out.Tickets),
+		"errors_count":     len(out.Report.Errors),
+		"completed_at":     out.Report.CompletedAt,
+		"started_at":       out.Report.StartedAt,
+		"duration_seconds": out.Report.CompletedAt.Sub(out.Report.StartedAt).Seconds(),
 	}
 	s.broker.Publish(sibylproxy.NewWorkflowCompleted(workflowID, summary, dur))
 }

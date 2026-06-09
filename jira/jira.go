@@ -42,8 +42,8 @@ type CreateIssueOutput struct {
 // CreateTicketInput is the activity input. The activity itself is
 // constructed with a Client + Resolver via NewActivities below.
 type CreateTicketInput struct {
-	Finding   findings.Finding
-	DryRun    bool // if true, don't actually call the client
+	Finding     findings.Finding
+	DryRun      bool              // if true, don't actually call the client
 	MinSeverity findings.Severity // skip findings below this; 0 = no filter
 }
 

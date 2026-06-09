@@ -140,9 +140,11 @@ func ScanStale(ctx context.Context, in ScanInput) (*ScanOutput, error) {
 
 // severityForIdle maps "how stale" to a severity. The multiplication
 // formula from our design docs:
-//   grant  = HIGH (OAuth client implies API access)
-//   lifetime = unbounded until revoked
-//   revocability = needs admin action
+//
+//	grant  = HIGH (OAuth client implies API access)
+//	lifetime = unbounded until revoked
+//	revocability = needs admin action
+//
 // So the floor is HIGH; we escalate to CRITICAL past 2 years because at
 // that point any rotation effort already missed multiple cycles.
 func severityForIdle(idle time.Duration) findings.Severity {

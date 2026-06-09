@@ -50,8 +50,8 @@ type ScanInput struct {
 
 // ScanOutput is the activity output.
 type ScanOutput struct {
-	Findings   []findings.Finding
-	FilesScanned int
+	Findings            []findings.Finding
+	FilesScanned        int
 	HistoryBytesScanned int64
 }
 
@@ -167,10 +167,10 @@ func scanBytes(data []byte, location, origin string) []findings.Finding {
 				evidenceKind = "git_commit"
 			}
 			fs = append(fs, findings.Finding{
-				ID:        findingID(rule.ID, loc, snippet),
-				Category:  findings.CategorySecretExposure,
-				Severity:  severityFor(rule.ID, origin),
-				Title:     fmt.Sprintf("%s in %s", rule.Description, location),
+				ID:       findingID(rule.ID, loc, snippet),
+				Category: findings.CategorySecretExposure,
+				Severity: severityFor(rule.ID, origin),
+				Title:    fmt.Sprintf("%s in %s", rule.Description, location),
 				Description: fmt.Sprintf(
 					"Pattern %q (rule %s) matched at %s. "+
 						"This pattern matches known secret formats; if this is a "+

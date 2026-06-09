@@ -32,9 +32,9 @@ type ScanInput struct {
 
 // ScanOutput is the activity output.
 type ScanOutput struct {
-	Findings       []findings.Finding
-	UsersReviewed  int
-	KeysReviewed   int
+	Findings      []findings.Finding
+	UsersReviewed int
+	KeysReviewed  int
 }
 
 // ScanIAM walks IAM users and their access keys; flags users with any
@@ -115,12 +115,12 @@ func ScanIAM(ctx context.Context, in ScanInput) (*ScanOutput, error) {
 		}
 		for _, k := range dormantKeys {
 			evidence = append(evidence, findings.Evidence{
-				Kind:        "api_field",
+				Kind: "api_field",
 				Description: fmt.Sprintf("dormant Active access key (last used %s, ~%d months ago)",
 					k.LastUsedDate.Format("2006-01-02"),
 					int(now.Sub(k.LastUsedDate).Hours()/24/30)),
-				Location:    fmt.Sprintf("aws:iam/users/%s/access-keys/%s", u.UserName, k.AccessKeyID),
-				Snippet:     fmt.Sprintf("AccessKeyId=%s Status=Active LastUsedService=%s",
+				Location: fmt.Sprintf("aws:iam/users/%s/access-keys/%s", u.UserName, k.AccessKeyID),
+				Snippet: fmt.Sprintf("AccessKeyId=%s Status=Active LastUsedService=%s",
 					k.AccessKeyID, k.LastUsedService),
 			})
 		}
@@ -149,9 +149,9 @@ func ScanIAM(ctx context.Context, in ScanInput) (*ScanOutput, error) {
 	}
 	emitter.Emit(sibylproxy.NewNodeCompleted("", nodeID, label,
 		map[string]interface{}{
-			"users_reviewed":   out.UsersReviewed,
-			"keys_reviewed":    out.KeysReviewed,
-			"findings_count":   len(out.Findings),
+			"users_reviewed": out.UsersReviewed,
+			"keys_reviewed":  out.KeysReviewed,
+			"findings_count": len(out.Findings),
 		},
 		time.Since(started),
 	))
@@ -159,9 +159,11 @@ func ScanIAM(ctx context.Context, in ScanInput) (*ScanOutput, error) {
 }
 
 // severityForIdle applies the multiplication formula:
-//   grant = HIGH (IAM keys carry real cloud authority)
-//   lifetime = until rotated
-//   revocability = manual; rotation can break things
+//
+//	grant = HIGH (IAM keys carry real cloud authority)
+//	lifetime = until rotated
+//	revocability = manual; rotation can break things
+//
 // So the floor is HIGH; we add multiplier for multiple dormant keys
 // (more keys means more surface) and for very old keys (rotation has
 // drifted further from any controlled cadence).

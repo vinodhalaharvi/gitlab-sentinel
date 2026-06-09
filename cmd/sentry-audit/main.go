@@ -30,12 +30,12 @@ func main() {
 		taskQueue    = flag.String("queue", "sentry", "Task queue name")
 		target       = flag.String("target", "", "Target path to scan (for the secrets scanner)")
 
-		oktaURL    = flag.String("okta-url", "http://localhost:9001", "Okta API base URL (mock or real)")
-		oktaToken  = flag.String("okta-token", "demo-okta-token", "Okta API token (SSWS)")
-		awsURL     = flag.String("aws-url", "http://localhost:9002", "AWS IAM API base URL (mock)")
-		awsToken   = flag.String("aws-token", "demo-aws-token", "AWS API token")
-		ghURL      = flag.String("github-url", "http://localhost:9003", "GitHub API base URL (mock or real)")
-		ghToken    = flag.String("github-token", "demo-github-token", "GitHub API token")
+		oktaURL   = flag.String("okta-url", "http://localhost:9001", "Okta API base URL (mock or real)")
+		oktaToken = flag.String("okta-token", "demo-okta-token", "Okta API token (SSWS)")
+		awsURL    = flag.String("aws-url", "http://localhost:9002", "AWS IAM API base URL (mock)")
+		awsToken  = flag.String("aws-token", "demo-aws-token", "AWS API token")
+		ghURL     = flag.String("github-url", "http://localhost:9003", "GitHub API base URL (mock or real)")
+		ghToken   = flag.String("github-token", "demo-github-token", "GitHub API token")
 
 		fileTickets = flag.Bool("file-tickets", true, "File Jira tickets for findings")
 		jsonOut     = flag.Bool("json", false, "Print JSON output (default: human-readable)")

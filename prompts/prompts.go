@@ -4,18 +4,18 @@
 //
 // The flow:
 //
-//   Scanner emits a candidate finding (deterministic, evidence-only).
-//        ↓
-//   prompts.FormatCandidate constructs a Question{Text, MaxRounds} that
-//   asks the Researcher to evaluate the candidate, write a justified
-//   severity and description, and explicitly state ACCEPTED or REJECTED.
-//        ↓
-//   ConvergeWorkflow runs Researcher and Critic in a loop until the
-//   Critic approves or MaxRounds is reached.
-//        ↓
-//   prompts.ParseConvergedAnswer reads Answer.Text and returns either
-//   a final Finding (with LLM-justified severity and description) or
-//   a RejectedFinding (with the rejection reason).
+//	Scanner emits a candidate finding (deterministic, evidence-only).
+//	     ↓
+//	prompts.FormatCandidate constructs a Question{Text, MaxRounds} that
+//	asks the Researcher to evaluate the candidate, write a justified
+//	severity and description, and explicitly state ACCEPTED or REJECTED.
+//	     ↓
+//	ConvergeWorkflow runs Researcher and Critic in a loop until the
+//	Critic approves or MaxRounds is reached.
+//	     ↓
+//	prompts.ParseConvergedAnswer reads Answer.Text and returns either
+//	a final Finding (with LLM-justified severity and description) or
+//	a RejectedFinding (with the rejection reason).
 //
 // Why a separate package: keeps the security-domain prompts out of the
 // generic Sibyl engine, and out of the audit workflow itself. The
@@ -210,11 +210,11 @@ func ParseConvergedAnswer(raw string) ConvergenceResult {
 	lines := strings.Split(raw, "\n")
 
 	var (
-		decisionStr    string
-		severityStr    string
-		rationale      []string
-		description    []string
-		curField       string
+		decisionStr string
+		severityStr string
+		rationale   []string
+		description []string
+		curField    string
 	)
 
 	for _, line := range lines {

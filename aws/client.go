@@ -31,12 +31,12 @@ func New(baseURL, token string) *Client {
 
 // User is one entry in GET /iam/users.
 type User struct {
-	UserName         string    `json:"UserName"`
-	UserID           string    `json:"UserId"`
-	Arn              string    `json:"Arn"`
-	CreateDate       time.Time `json:"CreateDate"`
+	UserName         string     `json:"UserName"`
+	UserID           string     `json:"UserId"`
+	Arn              string     `json:"Arn"`
+	CreateDate       time.Time  `json:"CreateDate"`
 	PasswordLastUsed *time.Time `json:"PasswordLastUsed"`
-	Tags             []Tag     `json:"Tags"`
+	Tags             []Tag      `json:"Tags"`
 }
 
 // UsersResponse wraps the User array (matches AWS's response envelope).
@@ -96,9 +96,9 @@ type RolePoliciesResponse struct {
 
 // PolicyDocument is the response from GET /iam/policies/{arn}.
 type PolicyDocument struct {
-	PolicyName     string                 `json:"PolicyName"`
-	Arn            string                 `json:"Arn"`
-	PolicyDocument json.RawMessage        `json:"PolicyDocument"`
+	PolicyName     string          `json:"PolicyName"`
+	Arn            string          `json:"Arn"`
+	PolicyDocument json.RawMessage `json:"PolicyDocument"`
 }
 
 // --- Methods ---

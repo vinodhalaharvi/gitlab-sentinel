@@ -143,7 +143,7 @@ func TestFormatCandidate_IncludesAllSections(t *testing.T) {
 		"DECISION: <ACCEPTED|REJECTED>",
 		"0oa1stale8",
 		"2023-08-01T14:22:00Z",
-		"365 days",  // the staleness criteria text
+		"365 days", // the staleness criteria text
 	} {
 		if !strings.Contains(q, want) {
 			t.Errorf("formatted candidate missing %q", want)

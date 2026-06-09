@@ -54,10 +54,10 @@ func New(baseURL, token string) *Client {
 // BlobSearchResult is one result from GET /projects/:id/search?scope=blobs.
 type BlobSearchResult struct {
 	Basename  string `json:"basename"`
-	Data      string `json:"data"`     // snippet of file content around the match
+	Data      string `json:"data"` // snippet of file content around the match
 	Path      string `json:"path"`
 	Filename  string `json:"filename"`
-	ID        string `json:"id"`       // blob SHA
+	ID        string `json:"id"` // blob SHA
 	Ref       string `json:"ref"`
 	Startline int    `json:"startline"`
 	ProjectID int    `json:"project_id"`

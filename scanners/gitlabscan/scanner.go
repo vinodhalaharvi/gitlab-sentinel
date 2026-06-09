@@ -63,9 +63,9 @@ type ScanOutput struct {
 
 // secretQuery is one blob-search query + metadata.
 type secretQuery struct {
-	query       string // search term sent to GitLab blob search
-	ruleID      string // matches severityFor() and findingID()
-	description string // human-readable label
+	query       string         // search term sent to GitLab blob search
+	ruleID      string         // matches severityFor() and findingID()
+	description string         // human-readable label
 	pattern     *regexp.Regexp // local confirmation filter (reduces false positives from GitLab's fuzzy search)
 }
 

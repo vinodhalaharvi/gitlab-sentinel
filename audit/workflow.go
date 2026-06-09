@@ -343,10 +343,10 @@ func runConvergence(ctx workflow.Context, candidates []findings.Finding) ([]find
 	})
 
 	type kicked struct {
-		candidate  findings.Finding
-		future     workflow.ChildWorkflowFuture
-		childWfID  string
-		startedAt  time.Time
+		candidate findings.Finding
+		future    workflow.ChildWorkflowFuture
+		childWfID string
+		startedAt time.Time
 	}
 	var fans []kicked
 
@@ -354,10 +354,10 @@ func runConvergence(ctx workflow.Context, candidates []findings.Finding) ([]find
 		childWfID := childWorkflowID(parentID, c.ID)
 
 		childOpts := workflow.ChildWorkflowOptions{
-			WorkflowID:        childWfID,
-			TaskQueue:         workflow.GetInfo(ctx).TaskQueueName,
+			WorkflowID:         childWfID,
+			TaskQueue:          workflow.GetInfo(ctx).TaskQueueName,
 			WorkflowRunTimeout: 5 * time.Minute,
-			ParentClosePolicy: 1,
+			ParentClosePolicy:  1,
 		}
 		childCtx := workflow.WithChildOptions(ctx, childOpts)
 

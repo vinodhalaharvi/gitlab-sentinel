@@ -22,9 +22,10 @@ import (
 // ConvergeEmitInput carries the data needed to construct one event.
 //
 // Kind is one of:
-//   "node.started"   — a ConvergeWorkflow child has been spawned
-//   "node.completed" — a child completed (accepted by Critic)
-//   "node.failed"    — a child failed or was rejected by Critic
+//
+//	"node.started"   — a ConvergeWorkflow child has been spawned
+//	"node.completed" — a child completed (accepted by Critic)
+//	"node.failed"    — a child failed or was rejected by Critic
 type ConvergeEmitInput struct {
 	ParentWorkflowID     string
 	Kind                 string

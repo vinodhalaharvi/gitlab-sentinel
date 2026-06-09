@@ -44,9 +44,9 @@ func ScriptedComplete(response string) CompleteFunc {
 // PickBackend resolves a backend name to a CompleteFunc, matching Sibyl's
 // cmd/api-server semantics:
 //
-//   "scripted"     → static response (for CI / smoke tests)
-//   "anthropic"    → Sibyl's Anthropic client (needs ANTHROPIC_API_KEY)
-//   "claude-code"  → Sibyl's Claude Code client (uses local CC session)
+//	"scripted"     → static response (for CI / smoke tests)
+//	"anthropic"    → Sibyl's Anthropic client (needs ANTHROPIC_API_KEY)
+//	"claude-code"  → Sibyl's Claude Code client (uses local CC session)
 //
 // model is the LLM model name (passed through to the backend); empty
 // means "the backend's default".

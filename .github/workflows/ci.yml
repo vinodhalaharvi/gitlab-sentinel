@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  GO_VERSION: "1.24"
+
 jobs:
   # ── 1. go vet ─────────────────────────────────────────────────────────────
   vet:
@@ -16,98 +19,51 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: ${{ env.GO_VERSION }}
           cache: true
+      - run: go vet ./...
+      - run: go vet -tags sibyl_stub ./...
 
-      - name: go vet (default build)
-        run: go vet ./...
-
-      - name: go vet (yara stub)
-        run: go vet -tags sibyl_stub ./...
-
-  # ── 2. staticcheck ────────────────────────────────────────────────────────
-  staticcheck:
-    name: staticcheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
-
-      - name: staticcheck
-        run: staticcheck ./...
-
-  # ── 3. golangci-lint ──────────────────────────────────────────────────────
-  lint:
-    name: golangci-lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          args: --timeout=5m
-
-  # ── 4. gofmt ──────────────────────────────────────────────────────────────
+  # ── 2. gofmt ──────────────────────────────────────────────────────────────
   fmt:
     name: gofmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-
       - name: Check formatting
         run: |
           unformatted=$(gofmt -l .)
           if [ -n "$unformatted" ]; then
-            echo "The following files are not gofmt-formatted:"
+            echo "Unformatted files:"
             echo "$unformatted"
             exit 1
           fi
 
-  # ── 5. go mod tidy ────────────────────────────────────────────────────────
+  # ── 3. go mod tidy ────────────────────────────────────────────────────────
   tidy:
     name: go mod tidy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-
-      - name: go mod tidy
-        run: go mod tidy
-
-      - name: Check for dirty go.mod / go.sum
+      - run: go mod tidy
+      - name: Check dirty go.mod / go.sum
         run: |
           if ! git diff --exit-code go.mod go.sum; then
-            echo "go.mod or go.sum is not tidy. Run 'go mod tidy' and commit."
+            echo "Run 'go mod tidy' and commit the result."
             exit 1
           fi
 
-  # ── 6. build ──────────────────────────────────────────────────────────────
+  # ── 4. build ──────────────────────────────────────────────────────────────
   build:
     name: build
     runs-on: ubuntu-latest
@@ -116,68 +72,83 @@ jobs:
         tags: ["", "sibyl_stub"]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-
       - name: Build (tags=${{ matrix.tags }})
         run: |
-          TAGS="${{ matrix.tags }}"
-          if [ -n "$TAGS" ]; then
-            go build -tags "$TAGS" ./...
+          if [ -n "${{ matrix.tags }}" ]; then
+            go build -tags "${{ matrix.tags }}" ./...
           else
             go build ./...
           fi
 
-  # ── 7. test ───────────────────────────────────────────────────────────────
+  # ── 5. test ───────────────────────────────────────────────────────────────
   test:
     name: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-
       - name: go test (race detector)
         run: go test -race -timeout=5m ./...
         env:
-          # Fixture-dependent tests skip gracefully when fixtures are absent.
-          # No secrets needed for unit tests.
           GITLAB_TOKEN: ""
           GITLAB_PROJECT: ""
-
       - name: go test (sibyl_stub)
         run: go test -tags sibyl_stub -timeout=5m ./...
 
-  # ── 8. coverage ───────────────────────────────────────────────────────────
+  # ── 6. coverage ───────────────────────────────────────────────────────────
   coverage:
     name: coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-
-      - name: Generate coverage report
+      - name: Generate coverage
         run: go test -coverprofile=coverage.out -covermode=atomic ./...
-
-      - name: Print coverage summary
+      - name: Summary
         run: go tool cover -func=coverage.out | tail -1
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.out
           retention-days: 7
+
+  # ── 7. staticcheck ────────────────────────────────────────────────────────
+  staticcheck:
+    name: staticcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - run: go install honnef.co/go/tools/cmd/staticcheck@latest
+      - run: staticcheck ./...
+
+  # ── 8. golangci-lint ──────────────────────────────────────────────────────
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
 
   # ── 9. govulncheck ────────────────────────────────────────────────────────
   vuln:
@@ -185,34 +156,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: ${{ env.GO_VERSION }}
           cache: true
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - run: govulncheck ./...
 
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
-      - name: govulncheck
-        run: govulncheck ./...
-
-  # ── gate: all checks must pass before merge ───────────────────────────────
+  # ── gate ──────────────────────────────────────────────────────────────────
   ci-gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [vet, staticcheck, lint, fmt, tidy, build, test, coverage, vuln]
+    needs: [vet, fmt, tidy, build, test, coverage, staticcheck, lint, vuln]
     if: always()
     steps:
-      - name: Check all jobs passed
+      - name: All jobs passed
         run: |
-          results='${{ toJSON(needs) }}'
-          echo "$results" | python3 -c "
-          import sys, json
-          needs = json.load(sys.stdin)
-          failed = [k for k, v in needs.items() if v['result'] not in ('success', 'skipped')]
+          python3 -c "
+          import json, sys
+          needs = json.loads('${{ toJSON(needs) }}')
+          failed = [k for k, v in needs.items() if v['result'] not in ('success','skipped')]
           if failed:
-              print('FAILED jobs:', failed)
-              sys.exit(1)
-          print('All CI jobs passed.')
+              print('FAILED:', failed); sys.exit(1)
+          print('All CI checks passed.')
           "

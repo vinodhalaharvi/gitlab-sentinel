@@ -74,11 +74,11 @@ func (s *Severity) UnmarshalJSON(data []byte) error {
 type Category string
 
 const (
-	CategorySecretExposure   Category = "secret_exposure"
-	CategoryStaleOAuth       Category = "stale_oauth"
-	CategoryOverPrivilege    Category = "over_privilege"
-	CategoryTokenReuse       Category = "token_reuse"
-	CategoryDormantAccount   Category = "dormant_account"
+	CategorySecretExposure Category = "secret_exposure"
+	CategoryStaleOAuth     Category = "stale_oauth"
+	CategoryOverPrivilege  Category = "over_privilege"
+	CategoryTokenReuse     Category = "token_reuse"
+	CategoryDormantAccount Category = "dormant_account"
 )
 
 // Evidence is a single piece of proof attached to a finding. The Critic
@@ -163,10 +163,10 @@ type Finding struct {
 // RejectedFinding records a candidate that the Critic refused to accept.
 // Keeping these in the report serves two purposes:
 //
-//   1. The audit team can see what the agent considered and rejected —
-//      transparency about false-positive filtering.
-//   2. If the rejection was wrong (rare but possible), the rejected list
-//      surfaces it for human review rather than swallowing it silently.
+//  1. The audit team can see what the agent considered and rejected —
+//     transparency about false-positive filtering.
+//  2. If the rejection was wrong (rare but possible), the rejected list
+//     surfaces it for human review rather than swallowing it silently.
 type RejectedFinding struct {
 	Candidate          Finding   `json:"candidate"`
 	Reason             string    `json:"reason"`

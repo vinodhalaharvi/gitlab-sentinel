@@ -50,11 +50,11 @@ type User struct {
 
 // Profile holds the user's identifying fields.
 type Profile struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Email     string `json:"email"`
-	Login     string `json:"login"`
-	Title     string `json:"title"`
+	FirstName  string `json:"firstName"`
+	LastName   string `json:"lastName"`
+	Email      string `json:"email"`
+	Login      string `json:"login"`
+	Title      string `json:"title"`
 	Department string `json:"department"`
 }
 
@@ -95,15 +95,15 @@ type GroupApp struct {
 // real Okta exposes last-used via the System Log API. Sentry's scanners
 // use whichever path is available.
 type App struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Label        string    `json:"label"`
-	Status       string    `json:"status"`
-	Created      time.Time `json:"created"`
-	LastUpdated  time.Time `json:"lastUpdated"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Label       string    `json:"label"`
+	Status      string    `json:"status"`
+	Created     time.Time `json:"created"`
+	LastUpdated time.Time `json:"lastUpdated"`
 	// Extension fields (mock convenience; not present in real Okta).
-	LastUsedMS   time.Time `json:"_last_used_ms,omitempty"`
-	Owner        string    `json:"_owner,omitempty"`
+	LastUsedMS time.Time `json:"_last_used_ms,omitempty"`
+	Owner      string    `json:"_owner,omitempty"`
 }
 
 // AppDetail is GET /api/v1/apps/{id}. Adds granted-scope info on top of
@@ -112,9 +112,9 @@ type App struct {
 // for fixture simplicity, and the scanner accepts both shapes.
 type AppDetail struct {
 	App
-	Settings        AppSettings `json:"settings"`
-	GrantedScopes   []string    `json:"_granted_scopes"`
-	ScopesUsed90D   []string    `json:"_scopes_used_90d"`
+	Settings      AppSettings `json:"settings"`
+	GrantedScopes []string    `json:"_granted_scopes"`
+	ScopesUsed90D []string    `json:"_scopes_used_90d"`
 }
 
 // AppSettings holds OAuth client configuration.
@@ -134,12 +134,12 @@ type OAuthClientSettings struct {
 // reads policy.evaluate_sign_on events to compute which granted scopes
 // were exercised in the lookback window.
 type LogEvent struct {
-	UUID         string             `json:"uuid"`
-	Published    time.Time          `json:"published"`
-	EventType    string             `json:"eventType"`
-	Actor        LogActor           `json:"actor"`
-	Outcome      LogOutcome         `json:"outcome"`
-	DebugContext LogDebugContext    `json:"debugContext"`
+	UUID         string          `json:"uuid"`
+	Published    time.Time       `json:"published"`
+	EventType    string          `json:"eventType"`
+	Actor        LogActor        `json:"actor"`
+	Outcome      LogOutcome      `json:"outcome"`
+	DebugContext LogDebugContext `json:"debugContext"`
 }
 
 // LogActor identifies what initiated the event (usually an app instance).

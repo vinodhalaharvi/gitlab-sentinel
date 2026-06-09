@@ -37,10 +37,10 @@ type Org struct {
 
 // Member is one entry in GET /orgs/{org}/members.
 type Member struct {
-	Login      string `json:"login"`
-	ID         int    `json:"id"`
-	Type       string `json:"type"` // "User" or "Bot"
-	SiteAdmin  bool   `json:"site_admin"`
+	Login     string `json:"login"`
+	ID        int    `json:"id"`
+	Type      string `json:"type"` // "User" or "Bot"
+	SiteAdmin bool   `json:"site_admin"`
 	// Mock convenience: the SAML SSO link to Okta. Real GitHub exposes
 	// this through the SAML SSO API as a separate endpoint.
 	OktaUserID string `json:"_okta_user_id,omitempty"`
