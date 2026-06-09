@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sibyl Sentry — Live Audit</title>
+<title>GitLab Sentinel — Live Audit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
     --bg: #0a0a0b; --bg-1: #121214; --bg-2: #1a1a1d;
     --line: #26262a; --line-strong: #3a3a40;
     --ink: #e8e8e0; --ink-dim: #8a8a82; --ink-faint: #55554e;
-    --sibyl: #f4f028;
+    --sibyl: #FC6D26;
     --accent: #ff6a3d;
     --ok: #6eff8a; --running: #7ab8ff; --warn: #f5c451; --crit: #ff4d4d;
   }
@@ -28,7 +28,7 @@
     font-size: 13px; line-height: 1.5; height: 100%; overflow: hidden; }
   body {
     background:
-      radial-gradient(ellipse at 5% 0%, rgba(244,240,40,0.04), transparent 50%),
+      radial-gradient(ellipse at 5% 0%, rgba(252,109,38,0.05), transparent 50%),
       radial-gradient(ellipse at 95% 100%, rgba(255,106,61,0.06), transparent 50%),
       var(--bg);
   }
@@ -484,6 +484,7 @@
 const { useState, useEffect, useRef, useMemo } = React;
 
 const SCANNERS = [
+  { id: 'gitlab',   label: 'GitLab',         sub: 'blob search + MR diffs' },
   { id: 'secrets',  label: 'Secrets',        sub: 'regex + git history' },
   { id: 'oauth',    label: 'Stale OAuth',    sub: 'okta /apps' },
   { id: 'scopes',   label: 'Over-Privilege', sub: 'okta /apps/{id}' },
@@ -675,6 +676,7 @@ function App() {
   useEffect(() => () => { if (esRef.current) esRef.current.close(); }, []);
 
   function inferParent(cid) {
+    if (cid.startsWith('gl-')) return 'gitlab';
     if (cid.startsWith('stale-oauth-') || cid.startsWith('oauth-')) return 'oauth';
     if (cid.startsWith('over-priv-') || cid.startsWith('overpriv-')) return 'scopes';
     if (cid.startsWith('dormant-iam-') || cid.startsWith('dorm-')) return 'dormancy';
@@ -682,7 +684,7 @@ function App() {
   }
 
   const candidatesByParent = useMemo(() => {
-    const out = { secrets: [], oauth: [], scopes: [], dormancy: [] };
+    const out = { gitlab: [], secrets: [], oauth: [], scopes: [], dormancy: [] };
     Object.entries(candidates).forEach(([cid, c]) => {
       out[inferParent(cid)].push({ id: cid, ...c });
     });
@@ -704,8 +706,8 @@ function App() {
     <div className="app">
       <header>
         <div className="brand">
-          <span className="brand-mark">Sibyl Sentry</span>
-          <span className="brand-sub">live audit</span>
+          <span className="brand-mark">GitLab Sentinel</span>
+          <span className="brand-sub">security audit · google cloud hackathon</span>
         </div>
         <div className="tabs">
           <button className={"tab " + (tab === 'list' ? 'active' : '')} onClick={() => setTab('list')}>
@@ -792,17 +794,17 @@ function ListView({ scanner, scannerOut, events, workflowId, playState, findings
           );
         })}
         <div className="side-title" style={{marginTop: 28}}>Vendor Sources</div>
+        <div className="scanner-card" style={{borderColor:'var(--sibyl)'}}>
+          <div className="scanner-head"><span className="scanner-name" style={{color:'var(--sibyl)'}}>GitLab</span><span className="scanner-status">live API</span></div>
+          <div className="scanner-body">Blob search · MR diffs · issues · code search</div>
+        </div>
         <div className="scanner-card">
-          <div className="scanner-head"><span className="scanner-name">Okta</span><span className="scanner-status">:9001</span></div>
+          <div className="scanner-head"><span className="scanner-name">Okta</span><span className="scanner-status">:9001 mock</span></div>
           <div className="scanner-body">Admin API · users · groups · apps · logs</div>
         </div>
         <div className="scanner-card">
-          <div className="scanner-head"><span className="scanner-name">AWS IAM</span><span className="scanner-status">:9002</span></div>
+          <div className="scanner-head"><span className="scanner-name">AWS IAM</span><span className="scanner-status">:9002 mock</span></div>
           <div className="scanner-body">Users · access keys · roles · policies</div>
-        </div>
-        <div className="scanner-card">
-          <div className="scanner-head"><span className="scanner-name">GitHub</span><span className="scanner-status">:9003</span></div>
-          <div className="scanner-body">Members · repos · teams · collaborators</div>
         </div>
       </aside>
 
@@ -914,12 +916,13 @@ function DagView({ scanner, scannerOut, candidates, candidatesByParent, workflow
   const CAND_AREA_TOP = 230;
 
   // Each scanner column is SCANNER_W wide plus a gutter, evenly distributed.
-  const COL_W = (W - 80) / 4;  // 4 scanner columns
+  const COL_W = (W - 80) / 5;  // 5 scanner columns
   const scannerXs = {
-    secrets:  40 + 0 * COL_W,
-    oauth:    40 + 1 * COL_W,
-    scopes:   40 + 2 * COL_W,
-    dormancy: 40 + 3 * COL_W,
+    gitlab:   40 + 0 * COL_W,
+    secrets:  40 + 1 * COL_W,
+    oauth:    40 + 2 * COL_W,
+    scopes:   40 + 3 * COL_W,
+    dormancy: 40 + 4 * COL_W,
   };
 
   // Layout candidates inside each scanner's column.
@@ -942,7 +945,7 @@ function DagView({ scanner, scannerOut, candidates, candidatesByParent, workflow
   }
 
   const candNodes = useMemo(() => {
-    return ['secrets', 'oauth', 'scopes', 'dormancy'].flatMap(candidateLayout);
+    return ['gitlab', 'secrets', 'oauth', 'scopes', 'dormancy'].flatMap(candidateLayout);
   }, [candidates]);
 
   const maxCandY = candNodes.reduce((m, n) => Math.max(m, n.y), CAND_AREA_TOP);
@@ -1055,7 +1058,7 @@ function DagView({ scanner, scannerOut, candidates, candidatesByParent, workflow
     <>
       <div className="dag-toolbar">
         <div className="dag-summary">
-          <div className="stat"><span className="v">4</span><b>scanners</b></div>
+          <div className="stat"><span className="v">5</span><b>scanners</b></div>
           <div className="stat"><span className="v">{Object.keys(candidates).length}</span><b>candidates</b></div>
           <div className="stat"><span className="v">{acceptedCount}</span><b>accepted</b></div>
           <div className="stat"><span className={"v " + (rejectedCount>0 ? 'crit' : '')}>{rejectedCount}</span><b>rejected</b></div>
