@@ -57,7 +57,8 @@ jobs:
       - name: Check dirty go.mod / go.sum
         run: |
           if ! git diff --exit-code go.mod go.sum; then
-            echo "Run 'go mod tidy' and commit."
+            echo "go.mod or go.sum needs updating. Run 'go mod tidy' and commit."
+            git diff go.mod go.sum
             exit 1
           fi
 
