@@ -13,6 +13,7 @@ package vendorhttp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -142,6 +143,6 @@ func (e *HTTPError) Error() string {
 // Useful when a missing fixture means "no such identity" rather than
 // "the call failed."
 func IsNotFound(err error) bool {
-	he, ok := err.(*HTTPError)
-	return ok && he.StatusCode == http.StatusNotFound
+	var he *HTTPError
+	return errors.As(err, &he) && he.StatusCode == http.StatusNotFound
 }
