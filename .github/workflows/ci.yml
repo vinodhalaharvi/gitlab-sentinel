@@ -24,7 +24,13 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
       - run: go vet ./...
+        env:
+          GONOSUMCHECK: "*"
+          GOFLAGS: "-mod=mod"
       - run: go vet -tags sibyl_stub ./...
+        env:
+          GONOSUMCHECK: "*"
+          GOFLAGS: "-mod=mod"
 
   fmt:
     name: gofmt
