@@ -1,0 +1,42 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck       # unchecked errors
+    - gosimple       # simplification suggestions
+    - govet          # go vet checks
+    - ineffassign    # ineffectual assignments
+    - staticcheck    # staticcheck SA/ST/QF rules
+    - unused         # unused code
+    - bodyclose      # HTTP response body not closed
+    - contextcheck   # non-inherited context in function calls
+    - errorlint      # error wrapping issues
+    - exhaustive     # exhaustive enum switches
+    - godot          # comment punctuation
+    - misspell       # common spelling mistakes
+    - noctx          # HTTP requests without context
+    - nolintlint     # bad nolint directives
+    - prealloc        # slice preallocation
+    - unconvert      # unnecessary type conversions
+    - whitespace     # unnecessary blank lines
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  exhaustive:
+    default-signifies-exhaustive: true
+  godot:
+    scope: declarations
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Test files: relax errcheck and godot
+    - path: "_test\\.go"
+      linters: [errcheck, godot]
+    # Generated or stub files
+    - path: "internal/sibylproxy/stub\\.go"
+      linters: [all]
+  max-issues-per-linter: 0
+  max-same-issues: 0
