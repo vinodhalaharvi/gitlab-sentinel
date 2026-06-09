@@ -7,6 +7,7 @@ require (
 	github.com/hillu/go-yara/v4 v4.3.4
 	github.com/vinodhalaharvi/sibyl v0.1.1-0.20260514135358-1be2194c3f16
 	go.temporal.io/sdk v1.43.0
+	google.golang.org/genai v1.14.0
 )
 
 require (

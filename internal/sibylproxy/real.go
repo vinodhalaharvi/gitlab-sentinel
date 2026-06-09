@@ -7,6 +7,7 @@ package sibylproxy
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.temporal.io/sdk/worker"
 
@@ -47,6 +48,8 @@ func ScriptedComplete(response string) CompleteFunc {
 //	"scripted"     → static response (for CI / smoke tests)
 //	"anthropic"    → Sibyl's Anthropic client (needs ANTHROPIC_API_KEY)
 //	"claude-code"  → Sibyl's Claude Code client (uses local CC session)
+//	"gemini"       → Gemini Developer API (needs GOOGLE_API_KEY)
+//	"gemini-vertex"→ Vertex AI / Enterprise (needs GOOGLE_CLOUD_PROJECT + LOCATION)
 //
 // model is the LLM model name (passed through to the backend); empty
 // means "the backend's default".
@@ -67,8 +70,23 @@ func PickBackend(name, model string) (CompleteFunc, error) {
 	case "claude-code":
 		cfg := agent.ClaudeCodeConfig{Model: model}
 		return agent.NewClaudeCodeClient(cfg).Complete, nil
+	case "gemini":
+		return pickGemini(context.Background(), model)
+	case "gemini-vertex":
+		c, err := NewGeminiClient(context.Background(), GeminiConfig{
+			Model:         model,
+			UseEnterprise: true,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("gemini-vertex client: %w", err)
+		}
+		return agent.Chain(
+			c.Complete,
+			agent.WithLogging(nil),
+			agent.WithRetry(3, 200*time.Millisecond),
+		), nil
 	default:
-		return nil, fmt.Errorf("unknown llm backend %q (try: scripted | anthropic | claude-code)", name)
+		return nil, fmt.Errorf("unknown llm backend %q (try: scripted | anthropic | claude-code | gemini | gemini-vertex)", name)
 	}
 }
 
