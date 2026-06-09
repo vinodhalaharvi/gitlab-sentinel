@@ -1,0 +1,32 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - errorlint
+    - misspell
+    - unconvert
+
+linters-settings:
+  errcheck:
+    # fmt.Fprintf to strings.Builder/os.Stderr never fails meaningfully
+    exclude-functions:
+      - fmt.Fprintf
+      - fmt.Fprintln
+      - fmt.Fprint
+
+issues:
+  exclude-rules:
+    - path: "_test\\.go"
+      linters: [errcheck]
+    - path: "internal/sibylproxy/stub\\.go"
+      linters: [errcheck, unused]
+  max-issues-per-linter: 0
+  max-same-issues: 0
