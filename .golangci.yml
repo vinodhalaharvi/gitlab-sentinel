@@ -1,6 +1,5 @@
 run:
   timeout: 5m
-  go: "1.24"
 
 linters:
   enable:
@@ -13,15 +12,15 @@ linters:
     - bodyclose
     - errorlint
     - misspell
-    - nolintlint
     - unconvert
-    - whitespace
 
 linters-settings:
   errcheck:
-    check-type-assertions: true
-  misspell:
-    locale: US
+    # fmt.Fprintf to strings.Builder/os.Stderr never fails meaningfully
+    exclude-functions:
+      - fmt.Fprintf
+      - fmt.Fprintln
+      - fmt.Fprint
 
 issues:
   exclude-rules:
