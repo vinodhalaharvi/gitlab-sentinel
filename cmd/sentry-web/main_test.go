@@ -22,7 +22,7 @@ func TestHandleIndex_ServesEmbeddedUI(t *testing.T) {
 	}
 	body, _ := io.ReadAll(rec.Result().Body)
 	got := string(body)
-	if !strings.Contains(got, "Sibyl Sentry") {
+	if !strings.Contains(got, "GitLab Sentinel") {
 		t.Errorf("response body missing brand text; first 200 bytes:\n%s", got[:min(200, len(got))])
 	}
 	if !strings.Contains(got, "EventSource") {
