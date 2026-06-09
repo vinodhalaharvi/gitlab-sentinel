@@ -65,8 +65,17 @@ const (
 )
 
 func main() {
-	addr := flag.String("addr", ":8090", "HTTP listen address")
-	temporalAddr := flag.String("temporal", "localhost:7233", "Temporal address")
+	// Cloud Run sets PORT; fall back to :8090 for local dev.
+	defaultAddr := ":8090"
+	if p := os.Getenv("PORT"); p != "" {
+		defaultAddr = ":" + p
+	}
+	addr := flag.String("addr", defaultAddr, "HTTP listen address")
+	temporalDefault := "localhost:7233"
+	if t := os.Getenv("TEMPORAL_ADDRESS"); t != "" {
+		temporalDefault = t
+	}
+	temporalAddr := flag.String("temporal", temporalDefault, "Temporal address")
 	taskQueue := flag.String("queue", "sentry", "Task queue name")
 	ownersPath := flag.String("owners", "../sibyl-sentry-fixtures/sentry-config/owners.json", "Path to owners.json")
 	defaultTarget := flag.String("default-target", "../sibyl-sentry-fixtures", "Default scan target (fixtures repo)")
