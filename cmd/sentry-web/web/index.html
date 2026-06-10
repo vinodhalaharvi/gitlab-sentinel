@@ -496,6 +496,9 @@ const SCANNERS = [
 // index.html directly without sentry-web running).
 const TEMPORAL_BASE = (window.SENTRY_CONFIG && window.SENTRY_CONFIG.temporal_ui_base)
   || 'http://localhost:8233/namespaces/default/workflows/';
+const AGENT_ENABLED = !!(window.SENTRY_CONFIG && window.SENTRY_CONFIG.agent_enabled === 'true');
+const SERVER_LLM    = (window.SENTRY_CONFIG && window.SENTRY_CONFIG.llm_backend) || 'scripted';
+const SERVER_PROJECT= (window.SENTRY_CONFIG && window.SENTRY_CONFIG.gitlab_project) || '';
 
 function App() {
   const [tab, setTab] = useState('dag');
@@ -508,6 +511,10 @@ function App() {
   const [events, setEvents] = useState([]);
   const [reportFindings, setReportFindings] = useState([]);
   const [reportRejected, setReportRejected] = useState([]);
+  const [agentMsg, setAgentMsg] = useState('');
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentReply, setAgentReply] = useState('');
+  const [scanModalOpen, setScanModalOpen] = useState(false);
   const esRef = useRef(null);
 
   function reset() {
@@ -520,6 +527,32 @@ function App() {
     setEvents([]);
     setReportFindings([]);
     setReportRejected([]);
+  }
+
+  async function sendAgent() {
+    if (!agentMsg.trim()) return;
+    setAgentLoading(true); setAgentReply('');
+    try {
+      const r = await fetch('/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: agentMsg }),
+      });
+      const out = await r.json();
+      if (out.error) { setAgentReply('Error: ' + out.error); return; }
+      setAgentReply(out.text || 'Scan started.');
+      if (out.workflow_id) {
+        setScanModalOpen(false);
+        setPlayState('running');
+        setWorkflowId(out.workflow_id);
+        const es = new EventSource('/events?workflow_id=' + encodeURIComponent(out.workflow_id));
+        es.onmessage = handleEvent;
+        ['workflow.started','workflow.completed','workflow.failed','node.started','node.completed','node.failed']
+          .forEach(k => es.addEventListener(k, handleEvent));
+        es.onerror = () => es.close();
+      }
+    } catch(e) { setAgentReply('Error: ' + String(e)); }
+    finally { setAgentLoading(false); }
   }
 
   async function runAudit() {
@@ -723,6 +756,11 @@ function App() {
             {playState === 'running' ? 'live' : playState === 'done' ? 'done' : 'idle'}
           </div>
           <button className="btn" onClick={reset} disabled={playState === 'idle'}>Reset</button>
+          {AGENT_ENABLED && (
+            <button className="btn" onClick={() => setScanModalOpen(true)} style={{borderColor:'var(--purple)',color:'var(--purple)'}}>
+              Ask Sentinel
+            </button>
+          )}
           <button className="btn btn-primary" onClick={runAudit} disabled={playState === 'running'}>
             {playState === 'done' ? 'Run Again' : 'Run Audit'}
           </button>
@@ -1474,6 +1512,57 @@ function Node({ x, y, w, h, cls, onClick, children }) {
       <rect className="node-pulse" x={-2} y={-2} width={w+4} height={h+4} rx={4}/>
       {children}
     </g>
+  );
+}
+
+
+function AgentModal({ open, onClose, agentMsg, setAgentMsg, agentLoading, agentReply, sendAgent }) {
+  if (!open) return null;
+  return (
+    <>
+      <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',backdropFilter:'blur(3px)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={onClose}>
+        <div style={{background:'var(--bg-1)',border:'1px solid var(--purple)',width:480,animation:'fadeSlideIn .18s ease-out',boxShadow:'0 12px 40px rgba(0,0,0,.7)'}} onClick={e=>e.stopPropagation()}>
+          <div style={{padding:'14px 18px',borderBottom:'1px solid var(--line)',display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:16}}>🤖</span>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:'var(--sans)',fontSize:13,fontWeight:500}}>Ask Sentinel</div>
+              <div style={{fontSize:9,color:'var(--ink-3)',letterSpacing:'.1em',textTransform:'uppercase'}}>Powered by Gemini · Google Cloud Agent Builder</div>
+            </div>
+            <button style={{background:'none',border:'none',color:'var(--ink-3)',fontSize:18,cursor:'pointer'}} onClick={onClose}>×</button>
+          </div>
+          <div style={{padding:'16px 18px',display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{fontSize:11,color:'var(--ink-2)',lineHeight:1.6}}>
+              Describe what you want to scan in natural language. The Agent Builder will parse your intent,
+              construct the scan parameters, and start the audit via the GitLab Sentinel backend.
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <input
+                style={{flex:1,background:'var(--bg)',border:'1px solid var(--line-2)',color:'var(--ink)',fontFamily:'var(--mono)',fontSize:12,padding:'8px 10px',outline:'none'}}
+                value={agentMsg}
+                onChange={e=>setAgentMsg(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&sendAgent()}
+                placeholder="Scan vinodhalaharvi/gitlab-sentinel for secrets and stale OAuth..."
+                autoFocus
+              />
+              <button
+                style={{background:agentLoading?'var(--bg-2)':'var(--purple)',color:'#fff',border:'none',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.06em',textTransform:'uppercase',padding:'8px 14px',cursor:'pointer',fontWeight:600,flexShrink:0,opacity:agentLoading?0.5:1}}
+                onClick={sendAgent} disabled={agentLoading || !agentMsg.trim()}
+              >
+                {agentLoading ? 'Thinking…' : 'Ask →'}
+              </button>
+            </div>
+            {agentReply && (
+              <div style={{background:'var(--bg)',padding:'10px 12px',borderLeft:'2px solid var(--teal)',fontSize:11,color:'var(--ink-2)',lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:160,overflowY:'auto'}}>
+                {agentReply}
+              </div>
+            )}
+            <div style={{fontSize:9,color:'var(--ink-3)',borderTop:'1px solid var(--line)',paddingTop:8}}>
+              η: UserIntent ──▶ RunRequest ──Arrow──▶ AuditOutput
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 

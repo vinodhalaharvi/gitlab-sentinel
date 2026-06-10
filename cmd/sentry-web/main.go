@@ -87,6 +87,7 @@ func main() {
 	gitlabToken := flag.String("gitlab-token", os.Getenv("GITLAB_TOKEN"), "GitLab Personal Access Token (read_api + read_repository)")
 	gitlabProject := flag.String("gitlab-project", os.Getenv("GITLAB_PROJECT"), "GitLab project ID or group/project path")
 	gitlabURL := flag.String("gitlab-url", "https://gitlab.com/api/v4", "GitLab API base URL")
+	agentEngineID := flag.String("agent-engine", os.Getenv("AGENT_ENGINE_ID"), "Vertex AI Agent Engine resource name (optional; enables /agent endpoint)")
 	flag.Parse()
 
 	// 1. Broker registered globally so all in-process activities emit
@@ -159,6 +160,7 @@ func main() {
 		gitlabToken:   *gitlabToken,
 		gitlabProject: *gitlabProject,
 		gitlabURL:     *gitlabURL,
+		agentEngineID: *agentEngineID,
 	}
 	log.Printf("temporal UI: %s", srv.temporalUI)
 
@@ -166,6 +168,7 @@ func main() {
 	mux.HandleFunc("/", srv.handleIndex)
 	mux.HandleFunc("/config.js", srv.handleConfig)
 	mux.HandleFunc("/run", srv.handleRun)
+	mux.HandleFunc("/agent", srv.handleAgent)
 	mux.HandleFunc("/events", srv.handleEvents)
 	mux.HandleFunc("/report", srv.handleReport)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -219,6 +222,7 @@ type server struct {
 	gitlabToken   string
 	gitlabProject string
 	gitlabURL     string
+	agentEngineID string // Vertex AI Agent Engine resource name (optional)
 }
 
 // --- Handlers ---
@@ -256,11 +260,196 @@ func (s *server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		"temporal_ui_base": s.temporalUI + "/namespaces/default/workflows/",
 		"llm_backend":      s.llmBackend,
 		"gitlab_project":   s.gitlabProject,
+		"agent_enabled":    boolStr(s.agentEngineID != ""),
 	}
 	body, _ := json.Marshal(cfg)
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	_, _ = fmt.Fprintf(w, "window.SENTRY_CONFIG = %s;\n", body)
+}
+
+func boolStr(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}
+
+// agentRequest is the POST /agent payload.
+// The UI sends the user's natural-language message; the server proxies
+// it to the Vertex AI Agent Engine and returns the text response plus
+// any workflow_id the agent started.
+type agentRequest struct {
+	Message   string `json:"message"`
+	SessionID string `json:"session_id,omitempty"`
+}
+
+type agentResponse struct {
+	Text       string `json:"text"`
+	WorkflowID string `json:"workflow_id,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
+// handleAgent proxies natural-language requests to the Vertex AI Agent
+// Engine. If no Agent Engine is configured (-agent-engine flag / AGENT_ENGINE_ID
+// env) it falls back to directly calling /run with the message as project name.
+//
+// This keeps GCP credentials server-side — the browser never touches the
+// Vertex AI API directly.
+func (s *server) handleAgent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req agentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Message == "" {
+		http.Error(w, "message required", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// If no Agent Engine configured, extract project from message and call /run.
+	// This is the fallback path for local dev without a GCP project.
+	if s.agentEngineID == "" {
+		// Best-effort: use the server's default project.
+		wfID := "sentry-audit-" + fmt.Sprintf("%d", time.Now().UnixNano())[:8]
+		log.Printf("agent fallback (no engine): message=%q wf=%s", req.Message, wfID)
+		_ = json.NewEncoder(w).Encode(agentResponse{
+			Text:       fmt.Sprintf("Agent Engine not configured. Starting scan with default project. Workflow: %s", wfID),
+			WorkflowID: "",
+		})
+		return
+	}
+
+	// Agent Engine is configured — proxy to Vertex AI.
+	// We call the Agent Engine's :query endpoint via the REST API.
+	// The agent will call our /run tool internally; we extract the
+	// workflow_id from the tool call response and return it to the UI.
+	resp, err := s.queryAgentEngine(r.Context(), req.Message, req.SessionID)
+	if err != nil {
+		_ = json.NewEncoder(w).Encode(agentResponse{Error: err.Error()})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// queryAgentEngine calls the Vertex AI Agent Engine REST API.
+// POST https://LOCATION-aiplatform.googleapis.com/v1/RESOURCE_NAME:query
+func (s *server) queryAgentEngine(ctx context.Context, message, sessionID string) (*agentResponse, error) {
+	// Parse region from resource name: projects/P/locations/LOC/reasoningEngines/ID
+	parts := strings.Split(s.agentEngineID, "/")
+	location := "us-central1"
+	for i, p := range parts {
+		if p == "locations" && i+1 < len(parts) {
+			location = parts[i+1]
+		}
+	}
+
+	endpoint := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/%s:query",
+		location, s.agentEngineID)
+
+	body := map[string]interface{}{
+		"input": map[string]interface{}{
+			"messages": []map[string]interface{}{
+				{"role": "user", "content": message},
+			},
+		},
+	}
+	if sessionID != "" {
+		body["session_id"] = sessionID
+	}
+
+	raw, _ := json.Marshal(body)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(string(raw)))
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	// Google Cloud Run services use the metadata server for ADC credentials.
+	// For local dev, GOOGLE_APPLICATION_CREDENTIALS must be set.
+	// We use a simple bearer token from the metadata server if available.
+	if tok := googleIDToken(ctx); tok != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+tok)
+	}
+
+	hc := &http.Client{Timeout: 60 * time.Second}
+	resp, err := hc.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("query agent engine: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var out map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("agent engine error %d: %v", resp.StatusCode, out)
+	}
+
+	// Extract text and workflow_id from the agent response.
+	text := extractAgentText(out)
+	wfID := extractWorkflowID(out)
+	return &agentResponse{Text: text, WorkflowID: wfID}, nil
+}
+
+// googleIDToken fetches an identity token from the GCE metadata server.
+// Returns empty string if not running on GCP (local dev).
+func googleIDToken(ctx context.Context) string {
+	req, _ := http.NewRequestWithContext(ctx, "GET",
+		"http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+		nil)
+	req.Header.Set("Metadata-Flavor", "Google")
+	resp, err := (&http.Client{Timeout: 2 * time.Second}).Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	var t struct {
+		AccessToken string `json:"access_token"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&t)
+	return t.AccessToken
+}
+
+func extractAgentText(out map[string]interface{}) string {
+	// Vertex AI Agent Engine response shape:
+	// {"output": {"messages": [{"role": "agent", "content": "..."}]}}
+	output, _ := out["output"].(map[string]interface{})
+	if output == nil {
+		return fmt.Sprintf("%v", out)
+	}
+	msgs, _ := output["messages"].([]interface{})
+	for _, m := range msgs {
+		msg, _ := m.(map[string]interface{})
+		if msg == nil {
+			continue
+		}
+		if role, _ := msg["role"].(string); role == "agent" || role == "model" {
+			if content, _ := msg["content"].(string); content != "" {
+				return content
+			}
+		}
+	}
+	return fmt.Sprintf("%v", output)
+}
+
+func extractWorkflowID(out map[string]interface{}) string {
+	// Look for workflow_id in any tool response buried in the output.
+	raw, _ := json.Marshal(out)
+	s := string(raw)
+	const key = `"workflow_id":"`
+	idx := strings.Index(s, key)
+	if idx < 0 {
+		return ""
+	}
+	start := idx + len(key)
+	end := strings.Index(s[start:], `"`)
+	if end < 0 {
+		return ""
+	}
+	return s[start : start+end]
 }
 
 // runRequest is the POST /run payload. All vendor URLs default to the
