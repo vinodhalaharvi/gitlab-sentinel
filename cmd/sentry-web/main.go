@@ -155,6 +155,7 @@ func main() {
 		defaultTarget: *defaultTarget,
 		maxCands:      *maxCands,
 		temporalUI:    strings.TrimRight(*temporalUIURL, "/"),
+		llmBackend:    *llmBackend,
 		gitlabToken:   *gitlabToken,
 		gitlabProject: *gitlabProject,
 		gitlabURL:     *gitlabURL,
@@ -214,6 +215,7 @@ type server struct {
 	defaultTarget string
 	maxCands      int
 	temporalUI    string
+	llmBackend    string
 	gitlabToken   string
 	gitlabProject string
 	gitlabURL     string
@@ -252,6 +254,8 @@ func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
 func (s *server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	cfg := map[string]string{
 		"temporal_ui_base": s.temporalUI + "/namespaces/default/workflows/",
+		"llm_backend":      s.llmBackend,
+		"gitlab_project":   s.gitlabProject,
 	}
 	body, _ := json.Marshal(cfg)
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
