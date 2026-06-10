@@ -1,0 +1,4 @@
+google.golang.org/adk v1.4.0 h1:Qi4KB9YKD00/I5K9v3QsZ9ng5YiZQ7MfMgM8BZjNcsM=
+google.golang.org/adk v1.4.0/go.mod h1:R8tNFnI/eiBXHn7zJPJtqdiK/WXC+tVkyuZsXyNZXN4=
+google.golang.org/genai v1.14.0 h1:oggc+F4l0MsRMQ1H/O2v8fXGD5B04rvd1q0GvHNsgEo=
+google.golang.org/genai v1.14.0/go.mod h1:QPj5NGJw+3wEOHg+PrsWwJKvG6UC84ex5FR7qAYsN/M=

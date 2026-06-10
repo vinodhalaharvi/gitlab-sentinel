@@ -1,2 +1,0 @@
-google-adk>=1.0.0
-google-cloud-aiplatform>=1.93.0
